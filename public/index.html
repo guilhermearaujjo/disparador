@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disparo Cartões NFC</title>
+<style>
+  :root{
+    --bg:#0b141a; --side:#111b21; --card:#1a252d; --line:#24323b; --input:#0f1a20;
+    --txt:#e9edef; --mut:#8696a0; --green:#25d366; --green2:#00a884; --yellow:#f5c518; --red:#f15c6d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;display:flex;min-height:100vh}
+  a{color:inherit;text-decoration:none}
+  /* sidebar */
+  .side{width:240px;background:var(--side);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+  .brand{display:flex;gap:10px;align-items:center;padding:4px 8px 18px}
+  .logo{width:38px;height:38px;border-radius:10px;background:var(--green2);display:grid;place-items:center;font-size:20px}
+  .brand b{display:block;font-size:15px;line-height:1.2}
+  .brand small{color:var(--mut);font-size:11px}
+  .nav{display:flex;gap:10px;align-items:center;padding:11px 12px;border-radius:10px;color:var(--mut);cursor:pointer;font-weight:600}
+  .nav:hover{background:#1f2c34;color:var(--txt)}
+  .nav.on{background:#1f2c34;color:var(--txt);box-shadow:inset 3px 0 0 var(--green)}
+  .side-foot{margin-top:auto;display:grid;gap:8px;padding:8px}
+  /* main */
+  main{flex:1;padding:24px 28px;max-width:1200px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+  .top h1{font-size:22px}
+  .worker{color:var(--mut);font-size:13px;margin-top:4px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:15px;margin-bottom:14px;display:flex;gap:10px;align-items:center}
+  .step{width:24px;height:24px;border-radius:50%;background:var(--green2);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800}
+  label{display:block;font-size:12px;color:var(--mut);margin-bottom:5px;font-weight:600}
+  input[type=text],input[type=number],textarea{width:100%;background:var(--input);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 11px;font:inherit;outline:none}
+  input:focus,textarea:focus{border-color:var(--green2)}
+  textarea{min-height:230px;resize:vertical;line-height:1.5}
+  .grid2{display:grid;grid-template-columns:1fr 340px;gap:16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .btn{background:var(--green);color:#062a14;border:0;border-radius:9px;padding:10px 16px;font:inherit;font-weight:800;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+  .btn.sec{background:#2a3942;color:var(--txt)}
+  .btn.warn{background:var(--yellow);color:#2a2000}
+  .btn.del{background:#3b1a1f;color:#ffb3bd}
+  .btn.sm{padding:7px 11px;font-size:13px}
+  .btn:disabled{opacity:.45;cursor:default}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;background:#2a3942;color:#cfd8dc}
+  .pill.ok{background:#0f3d2a;color:#5ff2a0}.pill.bad{background:#3d1419;color:#ff9aa6}.pill.mid{background:#3a3210;color:#ffd84d}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+  .muted{color:var(--mut);font-size:12px}
+  /* upload */
+  .drop{border:2px dashed #2f414c;border-radius:12px;padding:22px;text-align:center;cursor:pointer;color:var(--mut);transition:.15s}
+  .drop:hover,.drop.over{border-color:var(--green2);color:var(--txt);background:#0f1f1a}
+  .drop b{color:var(--txt)}
+  .drop input{display:none}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600;font-size:12px}
+  .tablewrap{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:12px}
+  /* chips */
+  .chip{border:1px solid var(--line);background:var(--input);color:var(--txt);border-radius:99px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:600}
+  .chip.on{border-color:var(--green);background:#0f3d2a;color:#5ff2a0}
+  .estimate{margin-top:12px;padding:10px 12px;border-radius:9px;background:#0f1f1a;border:1px solid #1d3b30;color:#9be7c0;font-size:13px}
+  .estimate.warn{background:#2b2410;border-color:#4d4214;color:#ffd84d}
+  /* phone preview */
+  .phone{background:#0b141a;border:1px solid var(--line);border-radius:18px;overflow:hidden;position:sticky;top:20px}
+  .phone-head{background:#202c33;padding:12px 14px;display:flex;gap:10px;align-items:center}
+  .avatar{width:34px;height:34px;border-radius:50%;background:#6b7c85;display:grid;place-items:center;font-size:16px}
+  .chat{min-height:420px;padding:16px 12px;background:#0b141a radial-gradient(#13232b 1px,transparent 1px) 0 0/18px 18px}
+  .bubble{background:#005c4b;color:#e9edef;border-radius:10px 2px 10px 10px;padding:5px;max-width:92%;margin-left:auto;font-size:13.5px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.3)}
+  .bubble img{display:block;width:100%;border-radius:7px;margin-bottom:4px}
+  .bubble .t{padding:3px 6px 2px;white-space:pre-wrap;word-wrap:break-word}
+  .bubble .h{text-align:right;font-size:10.5px;color:#9fd3c7;padding:0 6px 2px}
+  /* campaigns */
+  .camp{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;background:var(--card)}
+  .camp-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+  .camp-head b{font-size:15px}
+  .bar{height:9px;background:var(--input);border-radius:99px;overflow:hidden;margin:12px 0 8px}
+  .bar div{height:100%;background:linear-gradient(90deg,var(--green2),var(--green))}
+  .stats{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mut)}
+  .stats b{color:var(--txt)}
+  .inline{display:flex;gap:6px;align-items:center}
+  .inline input{width:80px;padding:6px 8px}
+  .log{max-height:340px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.7}
+  .log div{border-bottom:1px solid #1c2830;padding:3px 0;color:#c5d1d6}
+  .days{display:flex;gap:8px;flex-wrap:wrap}
+  .check{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
+  .hidden{display:none!important}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:50;padding:20px}
+  .modal .box{background:var(--card);border:1px solid var(--line);border-radius:14px;width:min(820px,100%);max-height:88vh;overflow:auto;padding:18px}
+  .st-sent{color:#5ff2a0}.st-pending{color:var(--mut)}.st-invalid{color:#ffd84d}.st-failed{color:#ff9aa6}
+  @media(max-width:900px){body{flex-direction:column}.side{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap}.side-foot{display:none}.grid2{grid-template-columns:1fr}main{padding:16px}}
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <div class="brand">
+    <div class="logo">📲</div>
+    <div><b id="appName">Disparo Cartões NFC</b><small>Disparador de WhatsApp</small></div>
+  </div>
+  <div class="nav on" data-page="novo">➕ Novo disparo</div>
+  <div class="nav" data-page="campanhas">📋 Campanhas</div>
+  <div class="nav" data-page="config">⚙️ Configurações</div>
+  <div class="nav" data-page="registro">🧾 Registro</div>
+  <div class="side-foot">
+    <span id="conn" class="pill"><span class="dot"></span>WhatsApp...</span>
+    <span id="today" class="pill">Hoje: 0</span>
+  </div>
+</aside>
+
+<main>
+  <div class="top">
+    <div>
+      <h1 id="pageTitle">Novo disparo</h1>
+      <div class="worker" id="worker">Carregando...</div>
+    </div>
+    <div class="row">
+      <span id="connTop" class="pill"><span class="dot"></span>WhatsApp...</span>
+    </div>
+  </div>
+
+  <!-- ===== NOVO DISPARO ===== -->
+  <section id="page-novo">
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <h2><span class="step">1</span>Nome do disparo</h2>
+          <input type="text" id="cName" placeholder="Ex.: Placa NFC – Pizzarias parte 1">
+        </div>
+
+        <div class="card">
+          <h2><span class="step">2</span>Contatos</h2>
+          <label class="drop" id="dropList">
+            <input type="file" id="cList" accept=".xlsx,.xls,.csv">
+            <div id="dropListTxt">📄 <b>Clique ou arraste a planilha</b><br><span class="muted">.xlsx ou .csv — com uma coluna de número (ex.: 5515999999999)</span></div>
+          </label>
+          <div id="listInfo" class="hidden">
+            <div class="estimate" id="listSummary"></div>
+            <div class="tablewrap"><table id="listTable"></table></div>
+          </div>
+          <label class="check" style="margin-top:12px"><input type="checkbox" id="cSkip" checked> Pular quem já recebeu em outro disparo</label>
+        </div>
+
+        <div class="card">
+          <h2><span class="step">3</span>Mensagem</h2>
+          <label>Texto — <span style="color:var(--txt)">{Oi|Olá|Opa}</span> sorteia uma opção por contato · <span style="color:var(--txt)">*negrito*</span> · <span style="color:var(--txt)">{nome}</span> usa o nome da planilha</label>
+          <textarea id="cMsg"></textarea>
+          <div class="row" style="margin-top:12px">
+            <label class="drop" id="dropImg" style="flex:1;padding:14px">
+              <input type="file" id="cImg" accept="image/*">
+              <span id="dropImgTxt">🖼️ <b>Adicionar imagem</b> <span class="muted">(opcional — o texto vai como legenda)</span></span>
+            </label>
+            <button class="btn sec sm hidden" id="btnRmImg" type="button">Remover imagem</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="step">4</span>Intervalo entre mensagens</h2>
+          <div class="row" id="presets">
+            <button class="chip" data-min="30" data-max="60">30 s – 1 min</button>
+            <button class="chip" data-min="60" data-max="120">1 – 2 min</button>
+            <button class="chip on" data-min="60" data-max="180">1 – 3 min</button>
+            <button class="chip" data-min="180" data-max="300">3 – 5 min</button>
+          </div>
+          <div class="grid" style="margin-top:14px">
+            <div><label>Mínimo (segundos)</label><input type="number" id="cMin" value="60" min="5"></div>
+            <div><label>Máximo (segundos)</label><input type="number" id="cMax" value="180" min="5"></div>
+          </div>
+          <div class="estimate" id="estimate">Selecione a planilha para ver a estimativa.</div>
+        </div>
+
+        <div class="row" style="margin-bottom:30px">
+          <button class="btn" id="btnStart">🚀 Salvar e iniciar disparo</button>
+          <button class="btn sec" id="btnDraft">Salvar como rascunho</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="phone">
+          <div class="phone-head"><div class="avatar">🍕</div><div><b style="font-size:14px">Prévia</b><div class="muted">como o contato vai receber</div></div></div>
+          <div class="chat"><div class="bubble" id="preview"></div></div>
+          <div style="padding:10px;background:#111b21;text-align:center"><button class="btn sec sm" id="btnReroll" type="button">🎲 Ver outra variação</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CAMPANHAS ===== -->
+  <section id="page-campanhas" class="hidden">
+    <div id="camps"><div class="card muted">Nenhum disparo ainda.</div></div>
+  </section>
+
+  <!-- ===== CONFIG ===== -->
+  <section id="page-config" class="hidden">
+    <div class="card">
+      <h2>Horário de envio</h2>
+      <div class="grid">
+        <div><label>Começa às (hora)</label><input type="number" id="startHour" min="0" max="23"></div>
+        <div><label>Para às (hora)</label><input type="number" id="endHour" min="1" max="24"></div>
+        <div><label>Limite de envios por dia</label><input type="number" id="dailyLimit" min="1"></div>
+      </div>
+      <label style="margin-top:14px">Dias da semana</label>
+      <div class="days" id="days"></div>
+    </div>
+    <div class="card">
+      <h2>Comportamento humano</h2>
+      <div class="grid">
+        <div><label>"Digitando..." mínimo (seg)</label><input type="number" id="typingMin" min="1"></div>
+        <div><label>"Digitando..." máximo (seg)</label><input type="number" id="typingMax" min="1"></div>
+        <div><label>Intervalo padrão mín. (seg)</label><input type="number" id="minDelay" min="5"></div>
+        <div><label>Intervalo padrão máx. (seg)</label><input type="number" id="maxDelay" min="5"></div>
+      </div>
+      <p class="muted" style="margin-top:10px">Fora do horário ou depois do limite diário, o disparo espera sozinho e continua no próximo período.</p>
+    </div>
+    <button class="btn" id="btnSaveCfg">Salvar configurações</button>
+  </section>
+
+  <!-- ===== REGISTRO ===== -->
+  <section id="page-registro" class="hidden">
+    <div class="card"><div class="log" id="log"></div></div>
+  </section>
+</main>
+
+<div class="modal hidden" id="modal"><div class="box">
+  <div class="camp-head" style="margin-bottom:12px"><b id="mTitle"></b><button class="btn sec sm" onclick="closeModal()">Fechar</button></div>
+  <div class="tablewrap" style="max-height:65vh"><table id="mTable"></table></div>
+</div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const STATUS = { draft:['Rascunho',''], running:['Enviando','ok'], paused:['Pausado','mid'], done:['Concluído',''] };
+const CT_STATUS = { sent:'Enviado', pending:'Na fila', invalid:'Sem WhatsApp', failed:'Erro' };
+const TITLES = { novo:'Novo disparo', campanhas:'Campanhas', config:'Configurações', registro:'Registro' };
+let state = null, settingsLoaded = false, listFile = null, imgFile = null, imgURL = null, listTotal = 0;
+
+async function api(url, opts = {}) {
+  const r = await fetch(url, opts);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('Erro ' + r.status));
+  return j;
+}
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtNum = n => { const d = String(n).replace(/\D/g,''); return d.length >= 12 ? `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,-4)}-${d.slice(-4)}` : n; };
+function fmtDur(sec){ sec = Math.round(sec); const h = Math.floor(sec/3600), m = Math.round((sec%3600)/60); return h ? `${h}h${String(m).padStart(2,'0')}` : `${m} min`; }
+
+/* ---------- navegação ---------- */
+function go(page){
+  document.querySelectorAll('.nav').forEach(n => n.classList.toggle('on', n.dataset.page === page));
+  Object.keys(TITLES).forEach(p => $('page-'+p).classList.toggle('hidden', p !== page));
+  $('pageTitle').textContent = TITLES[page];
+  if (page === 'campanhas' || page === 'registro') load();
+}
+document.querySelectorAll('.nav').forEach(n => n.onclick = () => go(n.dataset.page));
+
+/* ---------- prévia da mensagem ---------- */
+function spin(t){ let g=0; while(/\{[^{}]*\|[^{}]*\}/.test(t) && g++<50) t=t.replace(/\{([^{}]*\|[^{}]*)\}/g,(_,o)=>{const a=o.split('|');return a[Math.floor(Math.random()*a.length)];}); return t; }
+function waFormat(t){ return esc(t).replace(/\*([^*\n]+)\*/g,'<b>$1</b>').replace(/_([^_\n]+)_/g,'<i>$1</i>').replace(/~([^~\n]+)~/g,'<s>$1</s>'); }
+function renderPreview(){
+  const txt = spin($('cMsg').value.replace(/\{nome\}/gi, 'Pizzaria Exemplo')).trim();
+  const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  $('preview').innerHTML = (imgURL ? `<img src="${imgURL}">` : '') + `<div class="t">${waFormat(txt) || '<span style="opacity:.5">Sua mensagem aparece aqui</span>'}</div><div class="h">${now} ✓✓</div>`;
+}
+$('cMsg').addEventListener('input', renderPreview);
+$('btnReroll').onclick = renderPreview;
+
+/* ---------- uploads ---------- */
+function setupDrop(dropId, inputId, onFile){
+  const d = $(dropId), i = $(inputId);
+  i.onchange = () => i.files[0] && onFile(i.files[0]);
+  d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('over'); });
+  d.addEventListener('dragleave', () => d.classList.remove('over'));
+  d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) onFile(f); });
+}
+setupDrop('dropList','cList', async f => {
+  listFile = f;
+  $('dropListTxt').innerHTML = `📄 <b>${esc(f.name)}</b><br><span class="muted">Lendo...</span>`;
+  const fd = new FormData(); fd.append('list', f);
+  try {
+    const r = await api('/api/preview', { method:'POST', body: fd });
+    listTotal = r.total;
+    $('dropListTxt').innerHTML = `📄 <b>${esc(f.name)}</b><br><span class="muted">Clique para trocar</span>`;
+    $('listInfo').classList.remove('hidden');
+    $('listSummary').innerHTML = `✅ <b>${r.total}</b> números válidos encontrados` + (r.alreadySent ? ` · <b>${r.alreadySent}</b> já receberam antes` : '');
+    $('listTable').innerHTML = '<tr><th>Nome</th><th>Número</th></tr>' + r.sample.map(c => `<tr><td>${esc(c.name)||'—'}</td><td>${fmtNum(c.number)}</td></tr>`).join('') + (r.total > r.sample.length ? `<tr><td colspan="2" class="muted">+ ${r.total - r.sample.length} contatos</td></tr>` : '');
+    updateEstimate();
+  } catch(e){ listFile = null; listTotal = 0; $('dropListTxt').innerHTML = `❌ ${esc(e.message)}<br><span class="muted">Clique para tentar outra planilha</span>`; $('listInfo').classList.add('hidden'); updateEstimate(); }
+});
+setupDrop('dropImg','cImg', f => {
+  imgFile = f; if (imgURL) URL.revokeObjectURL(imgURL); imgURL = URL.createObjectURL(f);
+  $('dropImgTxt').innerHTML = `🖼️ <b>${esc(f.name)}</b> <span class="muted">(clique para trocar)</span>`;
+  $('btnRmImg').classList.remove('hidden'); renderPreview();
+});
+$('btnRmImg').onclick = () => { imgFile = null; if (imgURL) URL.revokeObjectURL(imgURL); imgURL = null; $('cImg').value=''; $('dropImgTxt').innerHTML = '🖼️ <b>Adicionar imagem</b> <span class="muted">(opcional — o texto vai como legenda)</span>'; $('btnRmImg').classList.add('hidden'); renderPreview(); };
+
+/* ---------- intervalo ---------- */
+document.querySelectorAll('#presets .chip').forEach(c => c.onclick = () => {
+  $('cMin').value = c.dataset.min; $('cMax').value = c.dataset.max; markPreset(); updateEstimate();
+});
+function markPreset(){ document.querySelectorAll('#presets .chip').forEach(c => c.classList.toggle('on', c.dataset.min == $('cMin').value && c.dataset.max == $('cMax').value)); }
+['cMin','cMax'].forEach(id => $(id).addEventListener('input', () => { markPreset(); updateEstimate(); }));
+function updateEstimate(){
+  const min = Number($('cMin').value)||0, max = Math.max(min, Number($('cMax').value)||0), el = $('estimate');
+  const lim = state ? state.settings.dailyLimit : 50;
+  const s = state ? state.settings : {startHour:9,endHour:18};
+  let txt = `Cada mensagem sai entre <b>${min}s</b> e <b>${max}s</b> depois da anterior (média ${fmtDur((min+max)/2)}).`;
+  if (listTotal) {
+    const days = Math.ceil(listTotal / lim);
+    txt += ` ${listTotal} contatos levam cerca de <b>${fmtDur(listTotal*(min+max)/2)}</b> de envio` + (days > 1 ? `, em <b>${days} dias</b> (limite de ${lim}/dia)` : '') + ` — só das ${s.startHour}h às ${s.endHour}h.`;
+  }
+  el.className = 'estimate' + (min < 60 ? ' warn' : '');
+  if (min < 60) txt = '⚠️ Intervalo abaixo de 1 minuto aumenta o risco de bloqueio do número. ' + txt;
+  el.innerHTML = txt;
+}
+
+/* ---------- criar campanha ---------- */
+async function createCampaign(startNow){
+  if (!$('cName').value.trim()) return alert('Dê um nome ao disparo');
+  if (!listFile) return alert('Selecione a planilha de contatos');
+  if (!$('cMsg').value.trim()) return alert('Escreva a mensagem');
+  const fd = new FormData();
+  fd.append('name', $('cName').value); fd.append('message', $('cMsg').value);
+  fd.append('skipPrevious', $('cSkip').checked); fd.append('minDelay', $('cMin').value); fd.append('maxDelay', $('cMax').value);
+  fd.append('list', listFile); if (imgFile) fd.append('image', imgFile);
+  $('btnStart').disabled = $('btnDraft').disabled = true;
+  try {
+    const r = await api('/api/campaigns', { method:'POST', body: fd });
+    if (startNow) await api(`/api/campaigns/${r.campaign.id}/start`, { method:'POST' });
+    $('cName').value=''; listFile=null; listTotal=0; $('cList').value=''; $('listInfo').classList.add('hidden');
+    $('dropListTxt').innerHTML = '📄 <b>Clique ou arraste a planilha</b><br><span class="muted">.xlsx ou .csv — com uma coluna de número (ex.: 5515999999999)</span>';
+    updateEstimate(); go('campanhas');
+  } catch(e){ alert(e.message); }
+  $('btnStart').disabled = $('btnDraft').disabled = false;
+}
+$('btnStart').onclick = () => createCampaign(true);
+$('btnDraft').onclick = () => createCampaign(false);
+
+/* ---------- campanhas ---------- */
+async function act(id, action){
+  if (action === 'delete' && !confirm('Excluir este disparo?')) return;
+  try { await api(`/api/campaigns/${id}/${action}`, { method:'POST' }); load(); } catch(e){ alert(e.message); }
+}
+async function testSend(id){
+  const number = prompt('Número para teste (com DDD):'); if (!number) return;
+  try { await api(`/api/campaigns/${id}/test`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ number }) }); alert('Teste enviado!'); } catch(e){ alert(e.message); }
+}
+async function saveInterval(id){
+  const min = $('min-'+id).value, max = $('max-'+id).value;
+  try { await api(`/api/campaigns/${id}/interval`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ minDelay:min, maxDelay:max }) }); load(); } catch(e){ alert(e.message); }
+}
+async function details(id, name){
+  $('mTitle').textContent = name; $('mTable').innerHTML = '<tr><td class="muted">Carregando...</td></tr>'; $('modal').classList.remove('hidden');
+  const r = await api(`/api/campaigns/${id}/contacts`);
+  $('mTable').innerHTML = '<tr><th>#</th><th>Nome</th><th>Número</th><th>Status</th><th>Quando</th></tr>' + r.contacts.map((c,i) =>
+    `<tr><td class="muted">${i+1}</td><td>${esc(c.name)||'—'}</td><td>${fmtNum(c.number)}</td><td class="st-${c.status}">${CT_STATUS[c.status]||c.status}${c.error?` <span class="muted" title="${esc(c.error)}">ⓘ</span>`:''}</td><td class="muted">${c.at?new Date(c.at).toLocaleString('pt-BR'):''}</td></tr>`).join('');
+}
+function closeModal(){ $('modal').classList.add('hidden'); }
+$('modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
+
+function renderCamps(list){
+  const el = $('camps');
+  if (!list.length) { el.innerHTML = '<div class="card muted">Nenhum disparo ainda. Crie um em “Novo disparo”.</div>'; return; }
+  const editing = document.activeElement && document.activeElement.id && /^(min|max)-/.test(document.activeElement.id);
+  if (editing) return;
+  el.innerHTML = list.map(c => {
+    const done = c.sent + c.failed + c.invalid, pct = c.total ? Math.round(done/c.total*100) : 0;
+    const [label, cls] = STATUS[c.status] || [c.status, ''];
+    return `<div class="camp">
+      <div class="camp-head">
+        <div><b>${esc(c.name)}</b><div class="muted">${new Date(c.createdAt).toLocaleString('pt-BR')}${c.image?' · com imagem':''}</div></div>
+        <span class="pill ${cls}">${c.status==='running'?'<span class="dot"></span>':''}${label}</span>
+      </div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      <div class="stats"><span><b>${pct}%</b></span><span>✅ <b>${c.sent}</b> enviados</span><span>⏳ <b>${c.pending}</b> na fila</span><span>⚠️ <b>${c.invalid}</b> sem WhatsApp</span><span>❌ <b>${c.failed}</b> erros</span><span>Total <b>${c.total}</b></span></div>
+      <div class="row" style="margin-top:14px;justify-content:space-between">
+        <div class="inline muted">Intervalo
+          <input type="number" id="min-${c.id}" value="${c.minDelay}"> a <input type="number" id="max-${c.id}" value="${c.maxDelay}"> seg
+          <button class="btn sec sm" onclick="saveInterval('${c.id}')">Aplicar</button>
+        </div>
+        <div class="row">
+          ${c.status!=='running'&&c.status!=='done'?`<button class="btn sm" onclick="act('${c.id}','start')">${c.status==='paused'?'▶ Retomar':'▶ Iniciar'}</button>`:''}
+          ${c.status==='running'?`<button class="btn warn sm" onclick="act('${c.id}','pause')">⏸ Pausar</button>`:''}
+          <button class="btn sec sm" onclick="details('${c.id}', ${esc(JSON.stringify(c.name))})">Contatos</button>
+          <button class="btn sec sm" onclick="testSend('${c.id}')">Enviar teste</button>
+          <a href="/api/campaigns/${c.id}/export" class="btn sec sm">⬇ Relatório</a>
+          ${c.status!=='running'?`<button class="btn del sm" onclick="act('${c.id}','delete')">Excluir</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- configurações ---------- */
+const CFG = ['startHour','endHour','dailyLimit','typingMin','typingMax','minDelay','maxDelay'];
+function fillSettings(s){
+  CFG.forEach(k => $(k).value = s[k]);
+  $('days').innerHTML = DAYS.map((d,i) => `<label class="chip ${s.workdays.includes(i)?'on':''}" style="margin:0"><input type="checkbox" value="${i}" ${s.workdays.includes(i)?'checked':''} style="display:none" onchange="this.parentNode.classList.toggle('on',this.checked)">${d}</label>`).join('');
+}
+$('btnSaveCfg').onclick = async () => {
+  const body = {}; CFG.forEach(k => body[k] = $(k).value);
+  body.workdays = [...document.querySelectorAll('#days input:checked')].map(i => Number(i.value));
+  try { const r = await api('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }); state.settings = r.settings; fillSettings(r.settings); updateEstimate(); alert('Configurações salvas'); } catch(e){ alert(e.message); }
+};
+
+/* ---------- estado ---------- */
+async function load(){
+  try {
+    state = await api('/api/state');
+    if (!settingsLoaded) {
+      fillSettings(state.settings); settingsLoaded = true;
+      $('cMin').value = state.settings.minDelay; $('cMax').value = state.settings.maxDelay; markPreset(); updateEstimate();
+    }
+    $('appName').textContent = state.appName; document.title = state.appName;
+    renderWorker();
+    $('today').textContent = `Hoje: ${state.daily.count}/${state.settings.dailyLimit} enviados`;
+    renderCamps(state.campaigns);
+    $('log').innerHTML = state.log.map(l => `<div>${new Date(l.at).toLocaleString('pt-BR')} — ${esc(l.msg)}</div>`).join('') || '<div class="muted">Nada ainda.</div>';
+  } catch(e){ $('worker').textContent = 'Erro: ' + e.message; }
+}
+function renderWorker(){
+  if (!state) return;
+  let info = state.workerInfo;
+  if (state.nextAt) { const s = Math.max(0, Math.round((state.nextAt - Date.now())/1000)); info += ` · ${Math.floor(s/60)}m${String(s%60).padStart(2,'0')}s`; }
+  $('worker').textContent = info;
+}
+async function loadConn(){
+  let txt = 'WhatsApp: erro', cls = 'bad';
+  try { const r = await api('/api/connection'); if (r.ok && r.state === 'open') { txt = 'WhatsApp conectado'; cls = 'ok'; } else if (r.ok) txt = 'WhatsApp: ' + r.state; } catch(_){}
+  ['conn','connTop'].forEach(id => { $(id).innerHTML = `<span class="dot"></span>${txt}`; $(id).className = 'pill ' + cls; });
+}
+
+$('cMsg').value =
+`{Oi|Olá|Opa}, tudo bem? 👋
+{Quer mais|Que tal mais} avaliações 5 estrelas no Google?
+
+Com a placa NFC + QR Code, seu cliente aproxima o celular e já pode avaliar sua empresa. Simples e rápido!
+
+✅ NFC + QR Code
+✅ Entrego até você
+✅ Instalo e configuro
+
+Tudo isso por apenas *R$ 100* cada placa!
+{Me chama aqui|Responde aqui} e garanta a sua!`;
+renderPreview(); load(); loadConn();
+setInterval(load, 5000); setInterval(renderWorker, 1000); setInterval(loadConn, 60000);
+</script>
+</body>
+</html>
